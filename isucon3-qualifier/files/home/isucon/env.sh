@@ -1,13 +1,12 @@
 #!/bin/sh
 
 HOME=/home/isucon
-GOROOT=$HOME/go
+GOROOT=$HOME/.local/go
 GOPATH=$GOROOT/bin
 GODEBUG=cgocheck=0
-NODEPATH=$HOME/local/node-v0.10/bin
-RUBYPATH=$HOME/local/ruby-2.3/bin
-PYTHONPATH=$HOME/local/python-3.3/bin
-PATH=$PYTHONPATH:$RUBYPATH:$PERLPATH:$NODEPATH:$GOPATH:$PATH:$HOME/bin
+RUBYPATH=$HOME/.local/ruby-2.3/bin
+#PYTHONPATH=$HOME/local/python-3.3/bin
+PATH=$RUBYPATH:$PERLPATH:$NODEPATH:$GOPATH:$PATH:$HOME/bin
 
 export PATH GOPATH GOROOT GODEBUG
 exec "$@"

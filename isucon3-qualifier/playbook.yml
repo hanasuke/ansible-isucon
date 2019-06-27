@@ -78,10 +78,10 @@
       git: repo=https://github.com/tagomoris/xbuild.git dest=/home/isucon/.xbuild
 
     # go
-    # - sudo_user: isucon
-    #   shell: .xbuild/go-install 1.8 /home/isucon/go
-    #   args:
-    #     creates: /home/isucon/go/bin/go
+    - sudo_user: isucon
+      shell: .xbuild/go-install 1.8 /home/isucon/.local/go
+      args:
+        creates: /home/isucon/.local/go/bin/go
     # - sudo_user: isucon
     #   shell: |
     #     set -e
@@ -99,28 +99,12 @@
     #   args:
     #     creates: /home/isucon/webapp/go/app
 
-    # nodejs
-    # - sudo_user: isucon
-    #   shell: .xbuild/node-install -f v0.10.20 /home/isucon/local/node-v0.10
-    #   args:
-    #     creates: /home/isucon/local/node-v0.10/bin/node
-    # - sudo_user: isucon
-    #   shell: |
-    #     set -e
-    #     source ./env.sh
-    #     cd webapp/nodejs/
-    #     npm config set strict-ssl false
-    #     npm install
-    #     npm config set strict-ssl true
-    #   args:
-    #     creates: /home/isucon/webapp/nodejs/node_modules
-
 #---- ruby
     - name: install ruby2.3
       sudo_user: isucon
-      shell: .xbuild/ruby-install 2.3.5 /home/isucon/local/ruby-2.3
+      shell: .xbuild/ruby-install 2.3.5 /home/isucon/.local/ruby-2.3
       args:
-        creates: /home/isucon/local/ruby-2.3/bin/ruby
+        creates: /home/isucon/.local/ruby-2.3/bin/ruby
     - name: copy Gemfile
       copy:
         src: 'files/home/isucon/webapp/ruby/Gemfile'
@@ -133,7 +117,7 @@
       sudo_user: isucon
       shell: |
         set -e
-        source ./env.sh
+        source ~/env.sh
         cd webapp/ruby/
         gem install bundler foreman
         bundle install --deployment --without development
@@ -146,22 +130,31 @@
         yum install -y  patch
 
 
-    - name: check already created symlink?
+    - name: check already created python3?
       stat:
         path: /usr/bin/python3
-      register: p
+      register: py
 
-    - name: rename 3.6 to 3
+    - name: check already created pip3??
+      stat:
+        path: /usr/bin/pip3
+      register: pi
+
+    - name: rename python 3.6 to 3
       shell: |
         ln -s /usr/bin/python3.6 /usr/bin/python3
+      when: not py.stat.exists
+
+    - name: rename python 3.6 to 3
+      shell: |
         ln -s /usr/bin/pip3.6 /usr/bin/pip3
-      when: not p.stat.exists
+      when: not pi.stat.exists
 
     - name: install libraries
       shell: |
-        sudo pip3 install flask==0.10 gunicorn==19.0.0
-        sudo pip3 install python3-memcached
-        sudo pip3 install PyMySQL
+        pip3 install flask==0.10 gunicorn==19.0.0
+        pip3 install python3-memcached
+        pip3 install PyMySQL
 
     # bench
     - yum: name=pigz
@@ -169,7 +162,7 @@
     - sudo_user: isucon
       shell: |
         set -e
-        source ./env.sh
+        source ~/env.sh
         cd qualifier_bench
         go get github.com/wsxiaoys/terminal/color
         go get github.com/moovweb/gokogiri/html
@@ -188,6 +181,9 @@
 
     # cleanup
     - file: path=/home/isucon/.xbuild state=absent
+    - file: path=/home/isucon/webapp/perl state=absent
+    - file: path=/home/isucon/webapp/nodejs state=absent
+    - file: path=/home/isucon/webapp/php state=absent
     - file: path=/tmp/isucon3 state=absent
     - file: path=/var/log/mysqld.log state=absent
     - file: path=/var/log/yum.log state=absent
