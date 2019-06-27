@@ -16,6 +16,8 @@
         - sqlite-devel
         - readline-devel
         - tk-devel
+        - gcc-c++
+        - glibc-headers
 
     # SELinux
     - selinux: state=disabled
@@ -113,22 +115,28 @@
     #   args:
     #     creates: /home/isucon/webapp/nodejs/node_modules
 
-    # ruby
-    # - yum: name=openssl-devel
-    # - yum: name=readline-devel
-    # - yum: name=zlib-devel
-    # - sudo_user: isucon
-    #   #shell: .xbuild/ruby-install 2.0.0-p247 /home/isucon/local/ruby-2.0
-    #   shell: .xbuild/ruby-install 2.3.5 /home/isucon/local/ruby-2.3
-    #   args:
-    #     creates: /home/isucon/local/ruby-2.3/bin/ruby
-    # - sudo_user: isucon
-    #   shell: |
-    #     set -e
-    #     source ./env.sh
-    #     cd webapp/ruby/
-    #     gem install bundler foreman
-    #     bundle install --deployment --without development
+#---- ruby
+    - name: install ruby2.3
+      sudo_user: isucon
+      shell: .xbuild/ruby-install 2.3.5 /home/isucon/local/ruby-2.3
+      args:
+        creates: /home/isucon/local/ruby-2.3/bin/ruby
+    - name: copy Gemfile
+      copy:
+        src: 'files/home/isucon/webapp/ruby/Gemfile'
+        dest: '/home/isucon/webapp/ruby/Gemfile'
+    - name: copy Gemfile.lock
+      copy:
+        src: 'files/home/isucon/webapp/ruby/Gemfile.lock'
+        dest: '/home/isucon/webapp/ruby/Gemfile.lock'
+    - name: bundle install
+      sudo_user: isucon
+      shell: |
+        set -e
+        source ./env.sh
+        cd webapp/ruby/
+        gem install bundler foreman
+        bundle install --deployment --without development
 
 #---- python3
     - name: install python3
@@ -138,10 +146,16 @@
         yum install -y  patch
 
 
+    - name: check already created symlink?
+      stat:
+        path: /usr/bin/python3
+      register: p
+
     - name: rename 3.6 to 3
       shell: |
         ln -s /usr/bin/python3.6 /usr/bin/python3
         ln -s /usr/bin/pip3.6 /usr/bin/pip3
+      when: not p.stat.exists
 
     - name: install libraries
       shell: |
