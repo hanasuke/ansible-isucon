@@ -6,6 +6,16 @@
     - yum: name=epel-release
     - yum: name=git
     - yum: name=patch
+    - yum: name="@Development tools"
+    - yum: name={{item}}
+      with_items:
+        - zlib-devel
+        - bzip2-devel
+        - openssl-devel
+        - ncurses-devel
+        - sqlite-devel
+        - readline-devel
+        - tk-devel
 
     # SELinux
     - selinux: state=disabled
@@ -66,79 +76,78 @@
       git: repo=https://github.com/tagomoris/xbuild.git dest=/home/isucon/.xbuild
 
     # go
-    - sudo_user: isucon
-      shell: .xbuild/go-install 1.8 /home/isucon/local/go
-      args:
-        creates: /home/isucon/local/go/bin/go
-    - sudo_user: isucon
-      shell: |
-        set -e
-        source ./env.sh
-        cd webapp/go/
-        go get github.com/go-sql-driver/mysql
-        go get github.com/gorilla/mux
-        go get github.com/gorilla/sessions
-        go get github.com/bradfitz/gomemcache/memcache
-        go build -o app
-      args:
-        creates: /home/isucon/webapp/go/app
+    # - sudo_user: isucon
+    #   shell: .xbuild/go-install 1.8 /home/isucon/go
+    #   args:
+    #     creates: /home/isucon/go/bin/go
+    # - sudo_user: isucon
+    #   shell: |
+    #     set -e
+    #     source ./env.sh
+    #     go get github.com/gorilla/mux
+    #     go get github.com/gorilla/sessions
+    #     go get github.com/gorilla/context
+    #     go get github.com/bradfitz/gomemcache/memcache
+    #     go get github.com/go-sql-driver/mysql
+    #     # cd ~/go/src/github.com/go-sql-driver/mysql/
+    #     # git checkout refs/tags/v1.2
+    #     # go install
+    #     cd ~/webapp/go/
+    #     go build app.go
+    #   args:
+    #     creates: /home/isucon/webapp/go/app
 
     # nodejs
-    - sudo_user: isucon
-      shell: .xbuild/node-install v0.10.20 /home/isucon/local/node-v0.10
-      args:
-        creates: /home/isucon/local/node-v0.10/bin/node
-    - sudo_user: isucon
-      shell: |
-        set -e
-        source ./env.sh
-        cd webapp/nodejs/
-        npm install
-      args:
-        creates: /home/isucon/webapp/nodejs/node_modules
-
-    # perl
-    - sudo_user: isucon
-      shell: .xbuild/perl-install 5.18.1 /home/isucon/local/perl-5.18
-      args:
-        creates: /home/isucon/local/perl-5.18/bin/perl
-    - sudo_user: isucon
-      shell: |
-        set -e
-        source ./env.sh
-        cd webapp/perl/
-        curl -L https://cpanmin.us | perl - Carton
-        carton install
+    # - sudo_user: isucon
+    #   shell: .xbuild/node-install -f v0.10.20 /home/isucon/local/node-v0.10
+    #   args:
+    #     creates: /home/isucon/local/node-v0.10/bin/node
+    # - sudo_user: isucon
+    #   shell: |
+    #     set -e
+    #     source ./env.sh
+    #     cd webapp/nodejs/
+    #     npm config set strict-ssl false
+    #     npm install
+    #     npm config set strict-ssl true
+    #   args:
+    #     creates: /home/isucon/webapp/nodejs/node_modules
 
     # ruby
-    - yum: name=openssl-devel
-    - yum: name=readline-devel
-    - yum: name=zlib-devel
-    - sudo_user: isucon
-      #shell: .xbuild/ruby-install 2.0.0-p247 /home/isucon/local/ruby-2.0
-      shell: .xbuild/ruby-install 2.0.0-p645 /home/isucon/local/ruby-2.0
-      args:
-        creates: /home/isucon/local/ruby-2.0/bin/ruby
-    - sudo_user: isucon
-      shell: |
-        set -e
-        source ./env.sh
-        cd webapp/ruby/
-        gem install bundler foreman
-        bundle install --deployment --without development
+    # - yum: name=openssl-devel
+    # - yum: name=readline-devel
+    # - yum: name=zlib-devel
+    # - sudo_user: isucon
+    #   #shell: .xbuild/ruby-install 2.0.0-p247 /home/isucon/local/ruby-2.0
+    #   shell: .xbuild/ruby-install 2.3.5 /home/isucon/local/ruby-2.3
+    #   args:
+    #     creates: /home/isucon/local/ruby-2.3/bin/ruby
+    # - sudo_user: isucon
+    #   shell: |
+    #     set -e
+    #     source ./env.sh
+    #     cd webapp/ruby/
+    #     gem install bundler foreman
+    #     bundle install --deployment --without development
 
-    # python
-    - yum: name=patch
-    - sudo_user: isucon
-      shell: .xbuild/python-install 3.3.2 /home/isucon/local/python-3.3
-      args:
-        creates: /home/isucon/local/python-3.3/bin/python
-    - sudo_user: isucon
+#---- python3
+    - name: install python3
       shell: |
-        set -e
-        source ./env.sh
-        cd webapp/python/
-        easy_install flask gunicorn python3-memcached PyMySQL3
+        yum install -y https://centos6.iuscommunity.org/ius-release.rpm
+        yum install -y python36*
+        yum install -y  patch
+
+
+    - name: rename 3.6 to 3
+      shell: |
+        ln -s /usr/bin/python3.6 /usr/bin/python3
+        ln -s /usr/bin/pip3.6 /usr/bin/pip3
+
+    - name: install libraries
+      shell: |
+        sudo pip3 install flask==0.10 gunicorn==19.0.0
+        sudo pip3 install python3-memcached
+        sudo pip3 install PyMySQL
 
     # bench
     - yum: name=pigz
@@ -148,19 +157,20 @@
         set -e
         source ./env.sh
         cd qualifier_bench
+        go get github.com/wsxiaoys/terminal/color
+        go get github.com/moovweb/gokogiri/html
         go get github.com/moovweb/gokogiri
-        go get github.com/wsxiaoys/terminal
         go build
 
-    # supervisor package is too old
-    # - yum: name=supervisor
-    - yum: name=python-setuptools
-    - easy_install: name=supervisor
-    - copy: src=files/etc/init.d/supervisord dest=/etc/init.d/ mode=a+x
-    - copy: src=files/etc/sysconfig/supervisord dest=/etc/sysconfig/
-    - copy: src=files/etc/supervisord.conf dest=/etc/
-    - shell: /sbin/chkconfig --add supervisord
-    - service: name=supervisord enabled=yes state=started
+    # # supervisor package is too old
+    # # - yum: name=supervisor
+    # - yum: name=python-setuptools
+    # - easy_install: name=supervisor
+    # - copy: src=files/etc/init.d/supervisord dest=/etc/init.d/ mode=a+x
+    # - copy: src=files/etc/sysconfig/supervisord dest=/etc/sysconfig/
+    # - copy: src=files/etc/supervisord.conf dest=/etc/
+    # - shell: /sbin/chkconfig --add supervisord
+    # - service: name=supervisord enabled=yes state=started
 
     # cleanup
     - file: path=/home/isucon/.xbuild state=absent
