@@ -1,14 +1,16 @@
 - hosts: all
   sudo: yes
   tasks:
-    - yum: name=* state=latest
-    - yum: name=libselinux-python
-    - yum: name=epel-release
-    - yum: name=git
-    - yum: name=patch
-    - yum: name="@Development tools"
-    - yum: name={{item}}
+    - name: update yum to latest
+      yum: name=* state=latest
+    - name: install necessary packages
+      yum: name={{item}}
       with_items:
+        - epel-release
+        - git
+        - patch
+        - libselinux-python
+        - "@Development tools"
         - zlib-devel
         - bzip2-devel
         - openssl-devel
@@ -77,28 +79,6 @@
     - sudo_user: isucon
       git: repo=https://github.com/tagomoris/xbuild.git dest=/home/isucon/.xbuild
 
-    # go
-    - sudo_user: isucon
-      shell: .xbuild/go-install 1.8 /home/isucon/.local/go
-      args:
-        creates: /home/isucon/.local/go/bin/go
-    # - sudo_user: isucon
-    #   shell: |
-    #     set -e
-    #     source ./env.sh
-    #     go get github.com/gorilla/mux
-    #     go get github.com/gorilla/sessions
-    #     go get github.com/gorilla/context
-    #     go get github.com/bradfitz/gomemcache/memcache
-    #     go get github.com/go-sql-driver/mysql
-    #     # cd ~/go/src/github.com/go-sql-driver/mysql/
-    #     # git checkout refs/tags/v1.2
-    #     # go install
-    #     cd ~/webapp/go/
-    #     go build app.go
-    #   args:
-    #     creates: /home/isucon/webapp/go/app
-
 #---- ruby
     - name: install ruby2.3
       sudo_user: isucon
@@ -123,40 +103,28 @@
         bundle install --deployment --without development
 
 #---- python3
-    - name: install python3
+    - become_user: isucon
+      shell: .xbuild/python-install 3.3.2 /home/isucon/.local/python3
+      args:
+        chdir: /home/isucon/
+        creates: /home/isucon/.local/python3/bin/python
+    - become_user: isucon
       shell: |
-        yum install -y https://centos6.iuscommunity.org/ius-release.rpm
-        yum install -y python36*
-        yum install -y  patch
-
-
-    - name: check already created python3?
-      stat:
-        path: /usr/bin/python3
-      register: py
-
-    - name: check already created pip3??
-      stat:
-        path: /usr/bin/pip3
-      register: pi
-
-    - name: rename python 3.6 to 3
-      shell: |
-        ln -s /usr/bin/python3.6 /usr/bin/python3
-      when: not py.stat.exists
-
-    - name: rename python 3.6 to 3
-      shell: |
-        ln -s /usr/bin/pip3.6 /usr/bin/pip3
-      when: not pi.stat.exists
-
-    - name: install libraries
-      shell: |
-        pip3 install flask==0.10 gunicorn==19.0.0
-        pip3 install python3-memcached
-        pip3 install PyMySQL
+        set -e
+        source ./env.sh
+        cd webapp/python/
+        pip3 install --upgrade flask gunicorn python3-memcached PyMySQL==0.8.0 Werkzeug==0.14.1 click==6.7 itsdangerous==0.24 MarkupSafe==1.0
+      args:
+        chdir: /home/isucon/
 
     # bench
+    - name: install golang
+      become_user: isucon
+      shell: .xbuild/go-install 1.9 /home/isucon/.local/go
+      args:
+        chdir: /home/isucon/
+        creates: /home/isucon/.local/go/bin/go
+
     - yum: name=pigz
     - yum: name=libxml2-devel
     - sudo_user: isucon
